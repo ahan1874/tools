@@ -15,6 +15,11 @@ namespace ExtractCerts
         {
             //X509Certificate oldcert = new X509Certificate(string.Format(@"d:\src\dns.main\private\dev\Setup\ADM\Secret\{0}", args[0]));
             //X509Certificate newcert = new X509Certificate(string.Format(@"d:\src\dns.prod\private\dev\Setup\ADM\Secret\{0}", args[0]));
+            if(args.Length == 0)
+            {
+                return;
+            }
+            
             X509Certificate oldcert = new X509Certificate(args[0]);
             X509Certificate newcert = new X509Certificate(args[1]);
             DirectoryInfo di = new DirectoryInfo(args[2]);
@@ -49,21 +54,19 @@ namespace ExtractCerts
                     if (fi.FullName.Contains("DNSWebsvccredentials.xml"))
                     {
                         StreamReader sr = fi.OpenText();
-                        Console.WriteLine(fi.FullName);
+                        //Console.WriteLine(fi.FullName);
                         StringBuilder newContent = new StringBuilder();
                         while (!sr.EndOfStream)
                         {
                             string line = sr.ReadLine();
-                            
                             if (line.Contains(oldsubjectName) && !line.Contains(oldissuer))
                             {
                                 isFound = true;
-                                Console.WriteLine(line);
                                 line = line.Replace(oldsubjectName, subjectName);
                                 int i = line.IndexOf("issuer=");
-                                int end = line.IndexOf("/>");
-                                string sub = line.Substring(i + 8, line.Length - i - 10);
-                                Console.WriteLine("Substring to be replaced is {0}", sub);
+                                int end = line.LastIndexOf("\"");
+                                string sub = line.Substring(i + 8, end-i-8);
+                                //Console.WriteLine("File {0}, replacing issuer {1} with {2} ", fi.FullName, sub, issuer);
                                 line = line.Replace(sub, issuer);
                             }
 
@@ -87,11 +90,12 @@ namespace ExtractCerts
                 }
             }
 
-            Console.WriteLine(string.Join(" ", filesToEdit));
-            Console.WriteLine("You need to sd edit this file:\n sd edit {0}\n", string.Join(" ", filesToEdit));
+            //Console.WriteLine(string.Join(" ", filesToEdit));
+            //Console.WriteLine("You need to sd edit this file:\n sd edit {0}\n", string.Join(" ", filesToEdit));
 
             StreamWriter sWrite = new StreamWriter(Path.Combine(args[2], "edit.cmd"));
             sWrite.Write(string.Format("sd edit {0}", string.Join(" ", filesToEdit)));
+            sWrite.WriteLine();
             sWrite.Close();
             Process p = new Process();
             p.StartInfo.FileName = "cmd.exe";
@@ -99,6 +103,8 @@ namespace ExtractCerts
             p.StartInfo.UseShellExecute = true;
 
             p.Start();
+
+            Console.WriteLine("REPLACE SUCCESS!!!");
         }
     }
 }
